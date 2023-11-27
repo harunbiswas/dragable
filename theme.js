@@ -32,7 +32,6 @@ function drop(event) {
 
   if (closestDiv) {
     const rect = closestDiv.getBoundingClientRect();
-    console.log("test");
 
     // Determine the appropriate width for the draggable element
     const newWidth = closestDiv.classList.contains("orange") ? 80 : 60;
@@ -48,8 +47,6 @@ function drop(event) {
       }px)`;
     }
   } else {
-    const rect = draggableElement.getBoundingClientRect();
-    // console.log(rect);
     const columnIndex = Math.floor(
       (mouseX - grid.offsetLeft) / draggableElement.offsetWidth
     );
@@ -57,7 +54,6 @@ function drop(event) {
     const rowIndex = Math.floor((mouseY - gridTop) / 24);
 
     const offsetX = parseFloat(draggableElement.getAttribute("data-offset-x"));
-    const offsetY = parseFloat(draggableElement.getAttribute("data-offset-y"));
 
     // Calculate the new position of the draggable element
     const newX = event.clientX - offsetX;
@@ -79,9 +75,10 @@ function checkOverlap(draggableElement, newX, newY) {
 
   // Check for nearby divs on the same row
   const nearbyDivs = document.elementsFromPoint(
-    newX + draggableRect.width / 2,
+    newX + draggableRect.width,
     newY + draggableRect.height / 2
   );
+
   const closestDiv = findClosestDiv(draggableElement, nearbyDivs);
 
   if (closestDiv) {
@@ -96,6 +93,29 @@ function checkOverlap(draggableElement, newX, newY) {
       // Overlapping
       return true;
     }
+  } else {
+    // Check for nearby divs on the same row
+    const nearbyDivs1 = document.elementsFromPoint(
+      newX,
+      newY + draggableRect.height / 2
+    );
+
+    const closestDiv = findClosestDiv(draggableElement, nearbyDivs1);
+    if (closestDiv) {
+      const rect = closestDiv.getBoundingClientRect();
+
+      if (
+        newX < rect.right &&
+        newX + draggableRect.width > rect.left &&
+        newY < rect.bottom &&
+        newY + draggableRect.height > rect.top
+      ) {
+        // Overlapping
+        return true;
+      }
+    }
+
+    return false;
   }
 
   // Not overlapping
