@@ -1,0 +1,46 @@
+body,
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+#grid {
+  display: grid;
+  grid-template-rows: repeat(50, 24px);
+  grid-template-columns: 100%;
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+.draggable {
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  cursor: grab;
+  position: absolute;
+  z-index: 1;
+  transition: transform 0.2s ease-in-out; /* Add transition for smooth movement */
+}
+
+.draggable.orange {
+  background-color: darkorange;
+  width: 80px;
+  height: 24px;
+}
+
+.draggable.grey {
+  background-color: darkgrey;
+  width: 60px;
+  height: 24px;
+}
+
+.draggable.green {
+  background-color: green;
+  width: 70px;
+  height: 24px;
+}
