@@ -63,6 +63,8 @@ function drop(event) {
     const isOverlap = checkOverlap(draggableElement, newX, newY);
     if (!isOverlap) {
       draggableElement.style.transform = `translate(${newX}px, ${newY}px)`;
+    } else {
+      draggableElement.style.transform = `translate(${isOverlap}px, ${newY}px)`;
     }
   }
 
@@ -91,7 +93,8 @@ function checkOverlap(draggableElement, newX, newY) {
       newY + draggableRect.height > rect.top
     ) {
       // Overlapping
-      return true;
+
+      return rect.left - draggableElement.offsetWidth;
     }
   } else {
     // Check for nearby divs on the same row
@@ -111,7 +114,7 @@ function checkOverlap(draggableElement, newX, newY) {
         newY + draggableRect.height > rect.top
       ) {
         // Overlapping
-        return true;
+        return rect.right;
       }
     }
 
