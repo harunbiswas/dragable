@@ -64,7 +64,12 @@ function drop(event) {
     if (!isOverlap) {
       draggableElement.style.transform = `translate(${newX}px, ${newY}px)`;
     } else {
-      draggableElement.style.transform = `translate(${isOverlap}px, ${newY}px)`;
+      const overlap1 = checkOverlap(draggableElement, isOverlap, newY);
+      if (!overlap1) {
+        draggableElement.style.transform = `translate(${isOverlap}px, ${newY}px)`;
+      } else {
+        draggableElement.style.transform = `translate(${overlap1}px, ${newY}px)`;
+      }
     }
   }
 
