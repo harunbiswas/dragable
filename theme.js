@@ -60,7 +60,7 @@ function drop(event) {
     // Check if the new position is valid (not overlapping with other elements)
     const isOverlap = checkOverlap(draggableElement, newX, newY);
 
-    if (!isOverlap) {
+    if (!isOverlap && isOverlap !== 0) {
       const nearbyDivs = document.elementsFromPoint(newX - 60, newY);
       const closestDiv1 = findClosestDiv(draggableElement, nearbyDivs);
 
