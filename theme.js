@@ -23,6 +23,7 @@ function drop(event) {
 
   const mouseX = event.clientX;
   const mouseY = event.clientY;
+  const offsetX = parseFloat(draggableElement.getAttribute("data-offset-x"));
 
   const gridTop = grid.getBoundingClientRect().top;
 
@@ -41,10 +42,9 @@ function drop(event) {
 
     // Check if the new position is valid (not overlapping with other elements)
     const isOverlap = checkOverlap(draggableElement, newX - newWidth, rect.top);
+
     if (!isOverlap) {
-      draggableElement.style.transform = `translate(${newX - newWidth}px, ${
-        rect.top
-      }px)`;
+      draggableElement.style.transform = `translate(${isOverlap}px, ${rect.top}px)`;
     }
   } else {
     const columnIndex = Math.floor(
@@ -53,22 +53,41 @@ function drop(event) {
 
     const rowIndex = Math.floor((mouseY - gridTop) / 24);
 
-    const offsetX = parseFloat(draggableElement.getAttribute("data-offset-x"));
-
     // Calculate the new position of the draggable element
-    const newX = event.clientX - offsetX;
+    const newX = event.clientX - offsetX > 0 ? event.clientX - offsetX : 0;
     const newY = rowIndex * 24;
 
     // Check if the new position is valid (not overlapping with other elements)
     const isOverlap = checkOverlap(draggableElement, newX, newY);
+
     if (!isOverlap) {
-      draggableElement.style.transform = `translate(${newX}px, ${newY}px)`;
+      const nearbyDivs = document.elementsFromPoint(newX - 60, newY);
+      const closestDiv1 = findClosestDiv(draggableElement, nearbyDivs);
+
+      if (closestDiv1) {
+        const rect = closestDiv1.getBoundingClientRect();
+        draggableElement.style.transform = `translate(${rect.right}px, ${newY}px)`;
+      } else {
+        const nearbyDivs = document.elementsFromPoint(
+          newX + draggableElement.offsetWidth + 60,
+          newY
+        );
+        const closestDiv1 = findClosestDiv(draggableElement, nearbyDivs);
+        if (closestDiv1) {
+          const rect = closestDiv1.getBoundingClientRect();
+          draggableElement.style.transform = `translate(${
+            rect.left - draggableElement.offsetWidth
+          }px, ${newY}px)`;
+        } else {
+          draggableElement.style.transform = `translate(${newX}px, ${newY}px)`;
+        }
+      }
     } else {
       const overlap1 = checkOverlap(draggableElement, isOverlap, newY);
       if (!overlap1) {
         draggableElement.style.transform = `translate(${isOverlap}px, ${newY}px)`;
       } else {
-        draggableElement.style.transform = `translate(${overlap1}px, ${newY}px)`;
+        draggableElement.style.transform = `translate(${overlap1}px, ${rect.top}px)`;
       }
     }
   }
