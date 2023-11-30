@@ -43,7 +43,7 @@ function drop(event) {
     // Check if the new position is valid (not overlapping with other elements)
     const isOverlap = checkOverlap(draggableElement, newX - newWidth, rect.top);
 
-    if (!isOverlap) {
+    if (!isOverlap && isOverlap !== 0) {
       draggableElement.style.transform = `translate(${isOverlap}px, ${rect.top}px)`;
     }
   } else {
@@ -84,10 +84,15 @@ function drop(event) {
       }
     } else {
       const overlap1 = checkOverlap(draggableElement, isOverlap, newY);
-      if (!overlap1) {
-        draggableElement.style.transform = `translate(${isOverlap}px, ${newY}px)`;
+
+      if (!overlap1 && overlap1 !== 0) {
+        const overlap2 = checkOverlap(draggableElement, isOverlap - 60, newY);
+
+        if (!overlap2 && overlap2 !== 0) {
+          draggableElement.style.transform = `translate(${isOverlap}px, ${newY}px)`;
+        }
       } else {
-        draggableElement.style.transform = `translate(${overlap1}px, ${rect.top}px)`;
+        draggableElement.style.transform = `translate(${overlap1}px, ${newY}px)`;
       }
     }
   }
