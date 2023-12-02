@@ -1,26 +1,36 @@
-function allowDrop(event) {
-  event.preventDefault();
+let draggableElement;
+let initialX;
+let initialY;
+
+function startDrag(event) {
+  const elm = event.target;
+  if (elm.classList.contains("draggable")) {
+    const offsetX = event.clientX - elm.getBoundingClientRect().left;
+    const offsetY = event.clientY - elm.getBoundingClientRect().top;
+    elm.setAttribute("data-offset-x", offsetX);
+    elm.setAttribute("data-offset-y", offsetY);
+    initialX = elm.getBoundingClientRect().left;
+    initialY = elm.getBoundingClientRect().top;
+    draggableElement = elm;
+  } else {
+    draggableElement = null;
+    initialX = null;
+    initialY = null;
+  }
 }
 
 function drag(event) {
-  const draggableElement = event.target;
+  if (draggableElement) {
+    const offsetX = parseFloat(draggableElement.getAttribute("data-offset-x"));
+    const offsetY = parseFloat(draggableElement.getAttribute("data-offset-y"));
+    const newX = event.clientX - offsetX > 0 ? event.clientX - offsetX : 0;
+    const newY = event.clientY - offsetY > 0 ? event.clientY - offsetY : 0;
 
-  // Get the offset between the mouse position and the top-left corner of the draggable element
-  const offsetX = event.clientX - draggableElement.getBoundingClientRect().left;
-  const offsetY = event.clientY - draggableElement.getBoundingClientRect().top;
-
-  // Set the offset as a data attribute on the draggable element
-  draggableElement.setAttribute("data-offset-x", offsetX);
-  draggableElement.setAttribute("data-offset-y", offsetY);
-
-  event.dataTransfer.setData("text", event.target.id);
+    draggableElement.style.transform = `translate(${newX}px, ${newY}px)`;
+  }
 }
 
 function drop(event) {
-  event.preventDefault();
-  const data = event.dataTransfer.getData("text");
-  const draggableElement = document.getElementById(data);
-
   const mouseX = event.clientX;
   const mouseY = event.clientY;
   const offsetX = parseFloat(draggableElement.getAttribute("data-offset-x"));
@@ -45,6 +55,8 @@ function drop(event) {
 
     if (!isOverlap && isOverlap !== 0) {
       draggableElement.style.transform = `translate(${isOverlap}px, ${rect.top}px)`;
+    } else {
+      draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`;
     }
   } else {
     const columnIndex = Math.floor(
@@ -80,13 +92,16 @@ function drop(event) {
           }px, ${newY}px)`;
         } else {
           draggableElement.style.transform = `translate(${newX}px, ${newY}px)`;
+          draggableElement = null;
+          initialX = null;
+          initialY = null;
         }
       }
     } else {
       const overlap1 = checkOverlap(draggableElement, isOverlap, newY);
 
       if (!overlap1 && overlap1 !== 0) {
-        const overlap2 = checkOverlap(draggableElement, isOverlap - 60, newY);
+        const overlap2 = checkOverlap(draggableElement, isOverlap, newY);
 
         if (!overlap2 && overlap2 !== 0) {
           draggableElement.style.transform = `translate(${isOverlap}px, ${newY}px)`;
@@ -97,8 +112,12 @@ function drop(event) {
     }
   }
 
-  draggableElement.style.position = "absolute";
-  draggableElement.style.zIndex = "1";
+  draggableElement = null;
+  initialX = null;
+  initialY = null;
+
+  // draggableElement.style.position = "absolute";
+  // draggableElement.style.zIndex = "1";
 }
 
 function checkOverlap(draggableElement, newX, newY) {
@@ -143,6 +162,7 @@ function checkOverlap(draggableElement, newX, newY) {
         newY + draggableRect.height > rect.top
       ) {
         // Overlapping
+
         return rect.right;
       }
     }
@@ -190,7 +210,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const draggable = document.createElement("div");
     draggable.className = "draggable";
     draggable.id = "draggable" + index;
-    draggable.setAttribute("draggable", "true");
+    // draggable.setAttribute("draggable", "true");
     draggable.textContent = "Truck";
 
     // Set width based on classname
@@ -206,11 +226,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const initialY = Math.floor(index / 2) * 24;
     draggable.style.transform = `translate(${initialX}px, ${initialY}px)`;
 
-    draggable.addEventListener("dragstart", drag);
-
     return draggable;
   }
+  grid.addEventListener("mousedown", startDrag);
+  // grid.addEventListener("mousemove", moving);
+  grid.addEventListener("mousemove", drag);
 
-  grid.addEventListener("dragover", allowDrop);
-  grid.addEventListener("drop", drop);
+  grid.addEventListener("mouseup", drop);
 });

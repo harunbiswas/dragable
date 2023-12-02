@@ -4,6 +4,7 @@ html {
   padding: 0;
   height: 100%;
   overflow: hidden;
+  user-select: text;
 }
 
 #grid {
