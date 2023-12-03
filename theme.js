@@ -64,18 +64,14 @@ function drop(event) {
     const offsetX = parseFloat(draggableElement.getAttribute("data-offset-x"));
 
     const elements = document.querySelectorAll(".draggable");
-    const overlaps = [];
-    elements.forEach((elm) => {
-      if (elm !== draggableElement) {
-        const isOverlap = checkOverlap(draggableElement, elm);
-        if (isOverlap) {
-          overlaps.push(elm);
-        }
-      }
-    });
+
+    const isOverlap = checkOverlap(draggableElement);
+
     const rowIndex = Math.floor((clientY - gridTop) / 24);
     const newY = rowIndex * 24;
-    if (!overlaps.length) {
+
+    console.log(isOverlap);
+    if (!isOverlap) {
       // Calculate the new position of the draggable element
 
       const near = areElementsNear(draggableElement);
@@ -90,19 +86,28 @@ function drop(event) {
         }
       } else {
         newX = clientX - offsetX > 0 ? clientX - offsetX : 0;
+
+        if (newX < 60) {
+          newX = 0;
+        }
       }
 
       draggableElement.style.transform = `translate(${newX}px, ${newY}px)`;
-    } else if (overlaps.length > 1) {
+    } else if (isOverlap.length > 1) {
       draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`;
     } else {
-      const position = getHorizontalPosition(draggableElement, overlaps[0]);
-      const rect = overlaps[0].getBoundingClientRect();
+      const position = getHorizontalPosition(draggableElement, isOverlap[0]);
+      const rect = isOverlap[0].getBoundingClientRect();
 
-      if (position === "left") {
-        draggableElement.style.transform = `translate(${
-          rect.left - draggableElement.offsetWidth
-        }px, ${newY}px)`;
+      if (position.p === "left") {
+        if (position.overlapX < isOverlap[0].offsetWidth / 2) {
+          draggableElement.style.transform = `translate(${
+            rect.left - draggableElement.offsetWidth
+          }px, ${newY}px)`;
+        } else {
+          draggableElement.style.transform = `translate(${rect.left}px, ${newY}px)`;
+        }
+
         const overlaps1 = [];
         elements.forEach((elm) => {
           if (elm !== draggableElement) {
@@ -117,8 +122,13 @@ function drop(event) {
           draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`;
         }
       } else {
-        draggableElement.style.transform = `translate(${rect.right}px, ${newY}px)`;
-
+        if (position.overlapX < isOverlap[0].offsetWidth / 2) {
+          draggableElement.style.transform = `translate(${rect.right}px, ${newY}px)`;
+        } else {
+          draggableElement.style.transform = `translate(${
+            rect.right - isOverlap[0].offsetWidth
+          }px, ${newY}px)`;
+        }
         const overlaps1 = [];
         elements.forEach((elm) => {
           if (elm !== draggableElement) {
@@ -146,26 +156,54 @@ function drop(event) {
   }
 }
 
-function checkOverlap(element1, element2) {
-  const rect1 = element1.getBoundingClientRect();
-  const rect2 = element2.getBoundingClientRect();
+function checkOverlap(draggable) {
+  const rect1 = draggable.getBoundingClientRect();
+  const elements = document.querySelectorAll(".draggable");
+  let maxOverlap = 0;
+  let elementWithMaxOverlap = null;
 
-  return (
-    rect1.x < rect2.x + rect2.width &&
-    rect1.x + rect1.width > rect2.x &&
-    rect1.y < rect2.y + rect2.height &&
-    rect1.y + rect1.height > rect2.y
-  );
+  elements.forEach((elm) => {
+    if (elm !== draggable) {
+      const rect2 = elm.getBoundingClientRect();
+
+      const horizontalOverlap =
+        rect1.x < rect2.x + rect2.width && rect1.x + rect1.width > rect2.x;
+      const verticalOverlap =
+        rect1.y < rect2.y + rect2.height && rect1.y + rect1.height > rect2.y;
+
+      if (horizontalOverlap && verticalOverlap) {
+        const overlapArea =
+          Math.min(rect1.x + rect1.width, rect2.x + rect2.width) -
+          Math.max(rect1.x, rect2.x);
+        if (overlapArea > maxOverlap) {
+          maxOverlap = overlapArea;
+          elementWithMaxOverlap = elm;
+        }
+      }
+    }
+  });
+
+  if (elementWithMaxOverlap) {
+    return [elementWithMaxOverlap];
+  } else {
+    return false;
+  }
 }
 
 function getHorizontalPosition(element1, element2) {
   const rect1 = element1.getBoundingClientRect();
   const rect2 = element2.getBoundingClientRect();
 
+  const overlapX = Math.max(
+    0,
+    Math.min(rect1.x + rect1.width, rect2.x + rect2.width) -
+      Math.max(rect1.x, rect2.x)
+  );
+
   if (rect1.x < rect2.x) {
-    return "left";
+    return { p: "left", overlapX };
   } else if (rect1.x > rect2.x) {
-    return "right";
+    return { p: "right", overlapX };
   } else {
     return "overlap"; // Elements have the same x position
   }
