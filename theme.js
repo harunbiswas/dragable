@@ -70,7 +70,6 @@ function drop(event) {
     const rowIndex = Math.floor((clientY - gridTop) / 24);
     const newY = rowIndex * 24;
 
-    console.log(isOverlap);
     if (!isOverlap) {
       // Calculate the new position of the draggable element
 
