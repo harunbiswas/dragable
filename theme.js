@@ -185,7 +185,7 @@ function areElementsNear(draggable) {
         (rect1.top + rect1.bottom) / 2 - (rect2.top + rect2.bottom) / 2
       );
 
-      const isNearX = distanceX < threshold;
+      const isNearX = distanceX < threshold && distanceY < 20;
       const isLeft =
         (rect2.left + rect2.right) / 2 > (rect1.left + rect1.right) / 2;
 
@@ -196,6 +196,26 @@ function areElementsNear(draggable) {
   });
 
   if (nears.length) {
+    // Find the nearest element
+
+    nears.sort((a, b) => {
+      const distanceA = Math.abs(
+        (rect1.left + rect1.right) / 2 -
+          (a.element.getBoundingClientRect().left +
+            a.element.getBoundingClientRect().right) /
+            2
+      );
+
+      const distanceB = Math.abs(
+        (rect1.left + rect1.right) / 2 -
+          (b.element.getBoundingClientRect().left +
+            b.element.getBoundingClientRect().right) /
+            2
+      );
+
+      return distanceA - distanceB;
+    });
+
     return nears[0];
   } else {
     return false;
