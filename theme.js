@@ -113,7 +113,7 @@ function drop(event) {
           }
         });
 
-        if (overlaps1.length) {
+        if (overlaps1.length || rect.left - draggableElement.offsetWidth < 0) {
           draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`;
         }
       } else {
@@ -129,7 +129,10 @@ function drop(event) {
           }
         });
 
-        if (overlaps1.length) {
+        if (
+          overlaps1.length ||
+          rect.right + draggableElement.offsetWidth > window.innerWidth
+        ) {
           draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`;
         }
       }
