@@ -46,6 +46,7 @@ function drag(event) {
     const newY = clientY - offsetY > 0 ? clientY - offsetY : 0;
 
     draggableElement.style.transform = `translate(${newX}px, ${newY}px)`;
+    draggableElement.style.zIndex = `5`;
   }
 }
 
@@ -59,170 +60,364 @@ function drop(event) {
       event.type === "mouseup"
         ? event.clientY
         : event.changedTouches[0].clientY;
-
+    const gridTop = grid.getBoundingClientRect().top;
     const offsetX = parseFloat(draggableElement.getAttribute("data-offset-x"));
 
-    const gridTop = grid.getBoundingClientRect().top;
-
-    // Check for nearby divs on the same row
-    const nearbyDivs = document.elementsFromPoint(clientX, clientY);
-    const closestDiv = findClosestDiv(draggableElement, nearbyDivs);
-
-    if (closestDiv) {
-      const rect = closestDiv.getBoundingClientRect();
-
-      // Determine the appropriate width for the draggable element
-      const newWidth = closestDiv.classList.contains("orange") ? 80 : 60;
-
-      // Calculate the new X position
-      const newX = rect.left + newWidth;
-
-      // Check if the new position is valid (not overlapping with other elements)
-      const isOverlap = checkOverlap(
-        draggableElement,
-        newX - newWidth,
-        rect.top
-      );
-
-      if (!isOverlap && isOverlap !== 0) {
-        draggableElement.style.transform = `translate(${isOverlap}px, ${rect.top}px)`;
-      } else {
-        draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`;
+    const elements = document.querySelectorAll(".draggable");
+    const overlaps = [];
+    elements.forEach((elm) => {
+      if (elm !== draggableElement) {
+        const isOverlap = checkOverlap(draggableElement, elm);
+        if (isOverlap) {
+          overlaps.push(elm);
+        }
       }
-    } else {
-      const columnIndex = Math.floor(
-        (clientX - grid.offsetLeft) / draggableElement.offsetWidth
-      );
-
-      const rowIndex = Math.floor((clientY - gridTop) / 24);
-
+    });
+    const rowIndex = Math.floor((clientY - gridTop) / 24);
+    const newY = rowIndex * 24;
+    if (!overlaps.length) {
       // Calculate the new position of the draggable element
-      const newX = clientX - offsetX > 0 ? clientX - offsetX : 0;
-      const newY = rowIndex * 24;
 
-      // Check if the new position is valid (not overlapping with other elements)
-      const isOverlap = checkOverlap(draggableElement, newX, newY);
+      const near = areElementsNear(draggableElement);
+      let newX = initialX;
 
-      if (!isOverlap && isOverlap !== 0) {
-        const nearbyDivs = document.elementsFromPoint(newX - 60, newY);
-        const closestDiv1 = findClosestDiv(draggableElement, nearbyDivs);
-
-        if (closestDiv1) {
-          const rect = closestDiv1.getBoundingClientRect();
-          draggableElement.style.transform = `translate(${rect.right}px, ${newY}px)`;
+      if (near) {
+        const rect = near.element.getBoundingClientRect();
+        if (near.isLeft) {
+          newX = rect.left - draggableElement.offsetWidth;
         } else {
-          const nearbyDivs = document.elementsFromPoint(
-            newX + draggableElement.offsetWidth + 60,
-            newY
-          );
-          const closestDiv1 = findClosestDiv(draggableElement, nearbyDivs);
-          if (closestDiv1) {
-            const rect = closestDiv1.getBoundingClientRect();
-            draggableElement.style.transform = `translate(${
-              rect.left - draggableElement.offsetWidth
-            }px, ${newY}px)`;
-          } else {
-            draggableElement.style.transform = `translate(${newX}px, ${newY}px)`;
-          }
+          newX = rect.right;
         }
       } else {
-        const overlap1 = checkOverlap(draggableElement, isOverlap, newY);
+        newX = clientX - offsetX > 0 ? clientX - offsetX : 0;
+      }
 
-        if (!overlap1 && overlap1 !== 0) {
-          const overlap2 = checkOverlap(draggableElement, isOverlap, newY);
+      draggableElement.style.transform = `translate(${newX}px, ${newY}px)`;
+    } else if (overlaps.length > 1) {
+      draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`;
+    } else {
+      const position = getHorizontalPosition(draggableElement, overlaps[0]);
+      const rect = overlaps[0].getBoundingClientRect();
 
-          if (!overlap2 && overlap2 !== 0) {
-            draggableElement.style.transform = `translate(${isOverlap}px, ${newY}px)`;
+      if (position === "left") {
+        draggableElement.style.transform = `translate(${
+          rect.left - draggableElement.offsetWidth
+        }px, ${newY}px)`;
+        const overlaps1 = [];
+        elements.forEach((elm) => {
+          if (elm !== draggableElement) {
+            const isOverlap = checkOverlap(draggableElement, elm);
+            if (isOverlap) {
+              overlaps1.push(elm);
+            }
           }
-        } else {
-          draggableElement.style.transform = `translate(${overlap1}px, ${newY}px)`;
+        });
+
+        if (overlaps1.length) {
+          draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`;
+        }
+      } else {
+        draggableElement.style.transform = `translate(${rect.right}px, ${newY}px)`;
+
+        const overlaps1 = [];
+        elements.forEach((elm) => {
+          if (elm !== draggableElement) {
+            const isOverlap = checkOverlap(draggableElement, elm);
+            if (isOverlap) {
+              overlaps1.push(elm);
+            }
+          }
+        });
+
+        if (overlaps1.length) {
+          draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`;
         }
       }
     }
 
+    // default value
+    draggableElement.style.zIndex = `1`;
     draggableElement = null;
     initialX = null;
     initialY = null;
   }
 }
 
-function checkOverlap(draggableElement, newX, newY) {
-  const draggableRect = draggableElement.getBoundingClientRect();
+function checkOverlap(element1, element2) {
+  const rect1 = element1.getBoundingClientRect();
+  const rect2 = element2.getBoundingClientRect();
 
-  // Check for nearby divs on the same row
-  const nearbyDivs = document.elementsFromPoint(
-    newX + draggableRect.width,
-    newY + draggableRect.height / 2
+  return (
+    rect1.x < rect2.x + rect2.width &&
+    rect1.x + rect1.width > rect2.x &&
+    rect1.y < rect2.y + rect2.height &&
+    rect1.y + rect1.height > rect2.y
   );
+}
 
-  const closestDiv = findClosestDiv(draggableElement, nearbyDivs);
+function getHorizontalPosition(element1, element2) {
+  const rect1 = element1.getBoundingClientRect();
+  const rect2 = element2.getBoundingClientRect();
 
-  if (closestDiv) {
-    const rect = closestDiv.getBoundingClientRect();
-
-    if (
-      newX < rect.right &&
-      newX + draggableRect.width > rect.left &&
-      newY < rect.bottom &&
-      newY + draggableRect.height > rect.top
-    ) {
-      // Overlapping
-
-      return rect.left - draggableElement.offsetWidth;
-    }
+  if (rect1.x < rect2.x) {
+    return "left";
+  } else if (rect1.x > rect2.x) {
+    return "right";
   } else {
-    // Check for nearby divs on the same row
-    const nearbyDivs1 = document.elementsFromPoint(
-      newX,
-      newY + draggableRect.height / 2
-    );
+    return "overlap"; // Elements have the same x position
+  }
+}
 
-    const closestDiv = findClosestDiv(draggableElement, nearbyDivs1);
-    if (closestDiv) {
-      const rect = closestDiv.getBoundingClientRect();
+function areElementsNear(draggable) {
+  const rect1 = draggable.getBoundingClientRect();
 
-      if (
-        newX < rect.right &&
-        newX + draggableRect.width > rect.left &&
-        newY < rect.bottom &&
-        newY + draggableRect.height > rect.top
-      ) {
-        // Overlapping
+  const threshold = 60 + draggable.offsetWidth;
+  const elements = document.querySelectorAll(".draggable");
+  const nears = [];
 
-        return rect.right;
+  elements.forEach((elm) => {
+    if (elm !== draggable) {
+      const rect2 = elm.getBoundingClientRect();
+      const distanceX = Math.abs(
+        (rect1.left + rect1.right) / 2 - (rect2.left + rect2.right) / 2
+      );
+      const distanceY = Math.abs(
+        (rect1.top + rect1.bottom) / 2 - (rect2.top + rect2.bottom) / 2
+      );
+
+      const isNearX = distanceX < threshold;
+      const isLeft =
+        (rect2.left + rect2.right) / 2 > (rect1.left + rect1.right) / 2;
+
+      if (isNearX) {
+        nears.push({ element: elm, isLeft: isLeft });
       }
     }
+  });
 
+  if (nears.length) {
+    return nears[0];
+  } else {
     return false;
   }
-
-  // Not overlapping
-  return false;
 }
 
-function findClosestDiv(draggableElement, nearbyDivs) {
-  let minDistance = Infinity;
-  let closestDiv = null;
+// function drop(event) {
+//   if (draggableElement) {
+//     const clientX =
+//       event.type === "mouseup"
+//         ? event.clientX
+//         : event.changedTouches[0].clientX;
+//     const clientY =
+//       event.type === "mouseup"
+//         ? event.clientY
+//         : event.changedTouches[0].clientY;
 
-  const draggableRect = draggableElement.getBoundingClientRect();
+//     const offsetX = parseFloat(draggableElement.getAttribute("data-offset-x"));
 
-  for (const element of nearbyDivs) {
-    if (
-      element !== draggableElement &&
-      element.classList.contains("draggable")
-    ) {
-      const rect = element.getBoundingClientRect();
-      const distance = Math.abs(rect.left - draggableRect.right);
+//     const gridTop = grid.getBoundingClientRect().top;
 
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestDiv = element;
-      }
-    }
-  }
+//     // Check for nearby divs on the same row
+//     const nearbyDivs = document.elementsFromPoint(clientX, clientY);
+//     const closestDiv = findClosestDiv(draggableElement, nearbyDivs);
 
-  return closestDiv;
-}
+//     if (closestDiv) {
+//       const rect = closestDiv.getBoundingClientRect();
+
+//       // Determine the appropriate width for the draggable element
+//       const newWidth = closestDiv.classList.contains("orange") ? 80 : 60;
+
+//       // Calculate the new X position
+//       const newX = rect.left + newWidth;
+
+//       // Check if the new position is valid (not overlapping with other elements)
+//       const isOverlap = checkOverlap(
+//         draggableElement,
+//         newX - newWidth,
+//         rect.top
+//       );
+//       if (isOverlap === true) {
+//         draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`;
+//       } else if (!isOverlap && isOverlap !== 0) {
+//         draggableElement.style.transform = `translate(${isOverlap}px, ${rect.top}px)`;
+//       } else {
+//         draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`;
+//       }
+//     } else {
+//       const columnIndex = Math.floor(
+//         (clientX - grid.offsetLeft) / draggableElement.offsetWidth
+//       );
+
+//       const rowIndex = Math.floor((clientY - gridTop) / 24);
+
+//       // Calculate the new position of the draggable element
+//       const newX = clientX - offsetX > 0 ? clientX - offsetX : 0;
+//       const newY = rowIndex * 24;
+
+//       // Check if the new position is valid (not overlapping with other elements)
+//       const isOverlap = checkOverlap(draggableElement, newX, newY);
+//       console.log(isOverlap);
+//       if (isOverlap === true) {
+//         draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`;
+//       } else if (!isOverlap && isOverlap !== 0) {
+//         const nearbyDivs = document.elementsFromPoint(newX - 60, newY);
+//         const closestDiv1 = findClosestDiv(draggableElement, nearbyDivs);
+
+//         if (closestDiv1) {
+//           const rect = closestDiv1.getBoundingClientRect();
+//           draggableElement.style.transform = `translate(${rect.right}px, ${newY}px)`;
+//         } else {
+//           const nearbyDivs = document.elementsFromPoint(
+//             newX + draggableElement.offsetWidth + 60,
+//             newY
+//           );
+//           const closestDiv1 = findClosestDiv(draggableElement, nearbyDivs);
+//           if (closestDiv1) {
+//             const rect = closestDiv1.getBoundingClientRect();
+//             draggableElement.style.transform = `translate(${
+//               rect.left - draggableElement.offsetWidth
+//             }px, ${newY}px)`;
+//           } else {
+//             draggableElement.style.transform = `translate(${newX}px, ${newY}px)`;
+//           }
+//         }
+//       } else {
+//         const overlap1 = checkOverlap(draggableElement, isOverlap, newY);
+
+//         if (!overlap1 && overlap1 !== 0) {
+//           const overlap2 = checkOverlap(draggableElement, isOverlap, newY);
+
+//           if (!overlap2 && overlap2 !== 0) {
+//             draggableElement.style.transform = `translate(${isOverlap}px, ${newY}px)`;
+//           } else {
+//             draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`;
+//           }
+//         } else {
+//           draggableElement.style.transform = `translate(${overlap1}px, ${newY}px)`;
+//         }
+//       }
+//     }
+//     draggableElement.style.zIndex = `1`;
+//     draggableElement = null;
+//     initialX = null;
+//     initialY = null;
+//   }
+// }
+
+// function checkOverlap(draggableElement, newX, newY) {
+//   const draggableRect = draggableElement.getBoundingClientRect();
+
+//   // Check for nearby divs on the same row
+//   const nearbyDivs = document.elementsFromPoint(
+//     newX + draggableRect.width,
+//     newY + draggableRect.height / 2
+//   );
+
+//   const closestDiv = findClosestDiv(draggableElement, nearbyDivs);
+
+//   if (closestDiv) {
+//     const rect = closestDiv.getBoundingClientRect();
+
+//     if (
+//       newX < rect.right &&
+//       newX + draggableRect.width > rect.left &&
+//       newY < rect.bottom &&
+//       newY + draggableRect.height > rect.top
+//     ) {
+//       // Overlapping
+
+//       // Check for nearby divs on the same row
+//       const nearbyDivs1 = document.elementsFromPoint(
+//         newX,
+//         newY + draggableRect.height / 2
+//       );
+
+//       const closestDiv = findClosestDiv(draggableElement, nearbyDivs1);
+//       if (closestDiv) {
+//         const rect = closestDiv.getBoundingClientRect();
+
+//         if (
+//           newX < rect.right &&
+//           newX + draggableRect.width > rect.left &&
+//           newY < rect.bottom &&
+//           newY + draggableRect.height > rect.top
+//         ) {
+//           // Overlapping
+
+//           return true;
+//         } else {
+//           return rect.left - draggableElement.offsetWidth;
+//         }
+//       } else {
+//         return rect.left - draggableElement.offsetWidth;
+//       }
+//     } else {
+//       return false;
+//     }
+//   } else {
+//     // Check for nearby divs on the same row
+//     const nearbyDivs1 = document.elementsFromPoint(
+//       newX,
+//       newY + draggableRect.height / 2
+//     );
+
+//     const closestDiv = findClosestDiv(draggableElement, nearbyDivs1);
+//     if (closestDiv) {
+//       const rect = closestDiv.getBoundingClientRect();
+
+//       if (
+//         newX < rect.right &&
+//         newX + draggableRect.width > rect.left &&
+//         newY < rect.bottom &&
+//         newY + draggableRect.height > rect.top
+//       ) {
+//         // Overlapping
+
+//         // Check for nearby divs on the same row
+//         const nearbyDivs2 = document.elementsFromPoint(
+//           newX + draggableRect.width,
+//           newY + draggableRect.height / 2
+//         );
+
+//         const closestDiv1 = findClosestDiv(draggableElement, nearbyDivs2);
+
+//         if (closestDiv1) {
+//           return true;
+//         } else {
+//           return rect.right;
+//         }
+//       } else {
+//         return rect.right;
+//       }
+//     } else {
+//       return false;
+//     }
+//   }
+// }
+
+// function findClosestDiv(draggableElement, nearbyDivs) {
+//   let minDistance = Infinity;
+//   let closestDiv = null;
+
+//   const draggableRect = draggableElement.getBoundingClientRect();
+
+//   for (const element of nearbyDivs) {
+//     if (
+//       element !== draggableElement &&
+//       element.classList.contains("draggable")
+//     ) {
+//       const rect = element.getBoundingClientRect();
+//       const distance = Math.abs(rect.left - draggableRect.right);
+
+//       if (distance < minDistance) {
+//         minDistance = distance;
+//         closestDiv = element;
+//       }
+//     }
+//   }
+
+//   return closestDiv;
+// }
 
 document.addEventListener("DOMContentLoaded", function () {
   const grid = document.getElementById("grid");
