@@ -1,6 +1,7 @@
 let draggableElement;
 let initialX;
 let initialY;
+let nearX=30;
 
 function startDrag(event) {
   if (event.type === "mousedown" || event.type === "touchstart") {
@@ -86,7 +87,7 @@ function drop(event) {
       } else {
         newX = clientX - offsetX > 0 ? clientX - offsetX : 0;
 
-        if (newX < 60) {
+        if (newX < nearX) {
           newX = 0;
         }
       }
@@ -211,7 +212,7 @@ function getHorizontalPosition(element1, element2) {
 function areElementsNear(draggable) {
   const rect1 = draggable.getBoundingClientRect();
 
-  const threshold = 60 + draggable.offsetWidth;
+  const threshold = nearX + draggable.offsetWidth;
   const elements = document.querySelectorAll(".draggable");
   const nears = [];
 
