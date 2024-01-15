@@ -1,7 +1,7 @@
 let draggableElement;
 let initialX;
 let initialY;
-let nearX=30;
+let nearX=20;
 
 function startDrag(event) {
   if (event.type === "mousedown" || event.type === "touchstart") {
