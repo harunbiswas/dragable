@@ -78,21 +78,42 @@ function drop(event) {
       let newX = initialX;
 
       if (near) {
-        const rect = near.element.getBoundingClientRect();
-        if (near.isLeft) {
-          newX = rect.left - draggableElement.offsetWidth;
-        } else {
-          newX = rect.right;
-        }
+          const rect = near.element.getBoundingClientRect();
+          if (near.isLeft) {
+            newX = rect.left - draggableElement.offsetWidth;
+          } else {
+            newX = rect.right;
+          }
+          
       } else {
-        newX = clientX - offsetX > 0 ? clientX - offsetX : 0;
+       
+          newX = clientX - offsetX > 0 ? clientX - offsetX : 0;
 
         if (newX < nearX) {
           newX = 0;
         }
+        
+        
       }
 
       draggableElement.style.transform = `translate(${newX}px, ${newY}px)`;
+
+      const near1 = areElementsNear(draggableElement);
+     
+
+      if (near1) {
+          const rect = near1.element.getBoundingClientRect();
+          if (near.isLeft) {
+            newX = rect.left - draggableElement.offsetWidth;
+          } else {
+            newX = rect.right;
+          }
+          draggableElement.style.transform = `translate(${newX}px, ${newY}px)`;
+      }
+
+   
+
+
     } else if (isOverlap.length > 1) {
       draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`;
     } else {
@@ -101,11 +122,15 @@ function drop(event) {
 
       if (position.p === "left") {
         if (position.overlapX < isOverlap[0].offsetWidth / 2) {
+        
           draggableElement.style.transform = `translate(${
             rect.left - draggableElement.offsetWidth
           }px, ${newY}px)`;
         } else {
+         
           draggableElement.style.transform = `translate(${rect.left}px, ${newY}px)`;
+
+
         }
 
         const overlaps1 = [];
@@ -145,6 +170,21 @@ function drop(event) {
         ) {
           draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`;
         }
+      }
+
+      const near1 = areElementsNear(draggableElement);
+     
+
+      if (near1) {
+
+        let newX;
+          const rect = near1.element.getBoundingClientRect();
+          if (near1.isLeft) {
+            newX = rect.left - draggableElement.offsetWidth;
+          } else {
+            newX = rect.right;
+          }
+          draggableElement.style.transform = `translate(${newX}px, ${newY}px)`;
       }
     }
 
