@@ -174,6 +174,10 @@ function drop(event) {
 
     if (alinment) {
       draggableElement.style.transform = `translate(${alinment?.newX}px, ${newY}px)`
+      const overlap = checkOverlap(draggableElement)
+      if (overlap) {
+        draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`
+      }
     }
 
     // default value
@@ -315,11 +319,75 @@ function areElementsNearVertically(draggable) {
 
       const isLeft =
         (rect2.left + rect2.right) / 2 > (rect1.left + rect1.right) / 2
+      // nears.push({ newX: rect2.left, isLeft: true })
 
-      if (EDistanceX < nearX && distanceY < 25) {
-        nears.push({ newX: rect2.left, isLeft: true })
-      } else if (Math.abs(rect1.left - rect2.right) < nearX && distanceY < 25) {
-        nears.push({ newX: rect2.right, isLeft: false })
+      if (rect2.right - rect2.left > draggable.offsetWidth) {
+        if (Math.abs(rect1.left - rect2.left) < nearX && distanceY < 25) {
+          if (
+            Math.abs(rect1.left - rect2.left) <
+            Math.abs(rect1.right - rect2.right)
+          ) {
+            nears.push({ newX: rect2.left, isLeft: true })
+          } else {
+            nears.push({
+              newX:
+                rect2.left + rect2.right - rect2.left - draggable.offsetWidth,
+              isLeft: true,
+            })
+          }
+        } else if (
+          Math.abs(rect1.left - rect2.right) < nearX &&
+          distanceY < 25
+        ) {
+          nears.push({
+            newX: rect2.right,
+            isLeft: true,
+          })
+        } else if (
+          Math.abs(rect1.right - rect2.right) < nearX &&
+          distanceY < 25
+        ) {
+          nears.push({
+            newX: rect2.right - (rect1.right - rect1.left),
+            isLeft: false,
+          })
+        } else if (
+          Math.abs(rect1.right - rect2.left) < nearX &&
+          distanceY < 25
+        ) {
+          nears.push({
+            newX: rect2.left - (rect1.right - rect1.left),
+            isLeft: false,
+          })
+        }
+      } else {
+        if (EDistanceX < nearX && distanceY < 25) {
+          nears.push({ newX: rect2.left, isLeft: true })
+        } else if (
+          Math.abs(rect1.left - rect2.right) < nearX &&
+          distanceY < 25
+        ) {
+          nears.push({
+            newX: rect2.right,
+            isLeft: true,
+          })
+        } else if (
+          Math.abs(rect1.right - rect2.right) < nearX &&
+          distanceY < 25
+        ) {
+          nears.push({
+            newX: rect2.right - (rect1.right - rect1.left),
+            isLeft: false,
+          })
+        } else if (
+          Math.abs(rect1.right - rect2.left) < nearX &&
+          distanceY < 25
+        ) {
+          nears.push({
+            newX: rect2.left - (rect1.right - rect1.left),
+            isLeft: false,
+          })
+        }
       }
     }
   })
