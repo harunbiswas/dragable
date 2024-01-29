@@ -45,3 +45,7 @@ html {
   width: 70px;
   height: 24px;
 }
+
+.draggable.select {
+  background-color: blue;
+}

@@ -2,39 +2,89 @@ let draggableElement
 let initialX
 let initialY
 let nearX = 20
+let selectedElements = []
+let selectedInitialX = []
+let selectedInitialY = []
 
 function startDrag(event) {
-  if (event.type === 'mousedown' || event.type === 'touchstart') {
-    event.preventDefault() // Prevent default action for touch events
-  }
+  if (!event.shiftKey) {
+    if (event.type === 'mousedown' || event.type === 'touchstart') {
+      event.preventDefault() // Prevent default action for touch events
+    }
 
-  const elm =
-    event.type === 'mousedown' ? event.target : event.touches[0].target
+    const elm =
+      event.type === 'mousedown' ? event.target : event.touches[0].target
 
-  if (elm.classList.contains('draggable')) {
-    const offsetX =
-      event.type === 'mousedown'
-        ? event.clientX - elm.getBoundingClientRect().left
-        : event.touches[0].clientX - elm.getBoundingClientRect().left
-    const offsetY =
-      event.type === 'mousedown'
-        ? event.clientY - elm.getBoundingClientRect().top
-        : event.touches[0].clientY - elm.getBoundingClientRect().top
+    if (elm.classList.contains('draggable')) {
+      if (elm.classList.contains('select')) {
+        selectedElements = []
+        const selectedItems = document.querySelectorAll('.select')
 
-    elm.setAttribute('data-offset-x', offsetX)
-    elm.setAttribute('data-offset-y', offsetY)
-    initialX = elm.getBoundingClientRect().left
-    initialY = elm.getBoundingClientRect().top
-    draggableElement = elm
-  } else {
-    draggableElement = null
-    initialX = null
-    initialY = null
+        selectedItems.forEach(item => {
+          const offsetX =
+            event.type === 'mousedown'
+              ? event.clientX - item.getBoundingClientRect().left
+              : event.touches[0].clientX - item.getBoundingClientRect().left
+          const offsetY =
+            event.type === 'mousedown'
+              ? event.clientY - item.getBoundingClientRect().top
+              : event.touches[0].clientY - item.getBoundingClientRect().top
+
+          item.setAttribute('data-offset-x', offsetX)
+          item.setAttribute('data-offset-y', offsetY)
+
+          let X = item.getBoundingClientRect().left
+          let Y = item.getBoundingClientRect().top
+
+          selectedElements.push(item)
+          selectedInitialX.push(X)
+          selectedInitialY.push(Y)
+        })
+      } else {
+        const offsetX =
+          event.type === 'mousedown'
+            ? event.clientX - elm.getBoundingClientRect().left
+            : event.touches[0].clientX - elm.getBoundingClientRect().left
+        const offsetY =
+          event.type === 'mousedown'
+            ? event.clientY - elm.getBoundingClientRect().top
+            : event.touches[0].clientY - elm.getBoundingClientRect().top
+
+        selectedElements = []
+        selectedInitialX = []
+        selectedInitialY = []
+        elm.setAttribute('data-offset-x', offsetX)
+        elm.setAttribute('data-offset-y', offsetY)
+        initialX = elm.getBoundingClientRect().left
+        initialY = elm.getBoundingClientRect().top
+        draggableElement = elm
+      }
+    } else {
+      draggableElement = null
+      initialX = null
+      initialY = null
+    }
   }
 }
 
 function drag(event) {
-  if (draggableElement) {
+  if (selectedElements && selectedElements.length) {
+    selectedElements.forEach(item => {
+      const offsetX = parseFloat(item.getAttribute('data-offset-x'))
+      const offsetY = parseFloat(item.getAttribute('data-offset-y'))
+
+      const clientX =
+        event.type === 'mousemove' ? event.clientX : event.touches[0].clientX
+      const clientY =
+        event.type === 'mousemove' ? event.clientY : event.touches[0].clientY
+
+      const newX = clientX - offsetX > 0 ? clientX - offsetX : 0
+      const newY = clientY - offsetY > 0 ? clientY - offsetY : 0
+
+      item.style.transform = `translate(${newX}px, ${newY}px)`
+      item.style.zIndex = `5`
+    })
+  } else if (draggableElement) {
     const offsetX = parseFloat(draggableElement.getAttribute('data-offset-x'))
     const offsetY = parseFloat(draggableElement.getAttribute('data-offset-y'))
 
@@ -52,7 +102,41 @@ function drag(event) {
 }
 
 function drop(event) {
-  if (draggableElement) {
+  if (selectedElements && selectedElements.length) {
+    selectedElements.forEach((draggableElement, i) => {
+      const offsetX = parseFloat(draggableElement.getAttribute('data-offset-x'))
+      const offsetY = parseFloat(draggableElement.getAttribute('data-offset-y'))
+
+      const clientX =
+        event.type === 'mouseup' ? event.clientX : event.touches[0].clientX
+      const clientY =
+        event.type === 'mouseup' ? event.clientY : event.touches[0].clientY
+
+      const newX = clientX - offsetX > 0 ? clientX - offsetX : 0
+      const newY = clientY - offsetY > 0 ? clientY - offsetY : 0
+
+      const isOverlap = checkOverlap(draggableElement)
+
+      if (!isOverlap) {
+        console.log('isOverlap')
+        draggableElement.style.transform = `translate(${newX}px, ${newY}px)`
+        draggableElement.style.zIndex = `1`
+      } else {
+        draggableElement.style.transform = `translate(${selectedInitialX[i]}px, ${selectedInitialY[i]}px)`
+
+        draggableElement.style.zIndex = `1`
+      }
+    })
+
+    // default value
+
+    draggableElement = null
+    initialX = null
+    initialY = null
+    selectedElements = []
+    selectedInitialX = []
+    selectedInitialY = []
+  } else if (draggableElement) {
     const clientX =
       event.type === 'mouseup' ? event.clientX : event.changedTouches[0].clientX
     const clientY =
@@ -185,6 +269,9 @@ function drop(event) {
     draggableElement = null
     initialX = null
     initialY = null
+    selectedElements = []
+    selectedInitialX = []
+    selectedInitialY = []
   }
 }
 
@@ -447,6 +534,21 @@ document.addEventListener('DOMContentLoaded', function () {
   grid.addEventListener('touchstart', startDrag)
   grid.addEventListener('touchmove', drag)
   grid.addEventListener('touchend', drop)
-})
 
-// Rest of your code...
+  // select
+  const items = document.querySelectorAll('.draggable')
+
+  items.forEach(item => {
+    item.addEventListener('click', event => {
+      if (event.shiftKey) {
+        if (item.classList.contains('select')) {
+          item.classList.remove('select')
+        } else {
+          item.classList.add('select')
+        }
+      }
+    })
+  })
+
+  // end select
+})
