@@ -103,29 +103,171 @@ function drag(event) {
 
 function drop(event) {
   if (selectedElements && selectedElements.length) {
-    selectedElements.forEach((draggableElement, i) => {
-      const offsetX = parseFloat(draggableElement.getAttribute('data-offset-x'))
-      const offsetY = parseFloat(draggableElement.getAttribute('data-offset-y'))
+    draggableElement = event.target
+    const clientX =
+      event.type === 'mouseup' ? event.clientX : event.changedTouches[0].clientX
+    const clientY =
+      event.type === 'mouseup' ? event.clientY : event.changedTouches[0].clientY
+    const gridTop = grid.getBoundingClientRect().top
+    const offsetX = parseFloat(draggableElement.getAttribute('data-offset-x'))
 
-      const clientX =
-        event.type === 'mouseup' ? event.clientX : event.touches[0].clientX
-      const clientY =
-        event.type === 'mouseup' ? event.clientY : event.touches[0].clientY
+    const elements = document.querySelectorAll('.draggable')
 
-      const newX = clientX - offsetX > 0 ? clientX - offsetX : 0
-      const newY = clientY - offsetY > 0 ? clientY - offsetY : 0
+    const isOverlap = checkOverlap(draggableElement)
 
-      const isOverlap = checkOverlap(draggableElement)
+    const rowIndex = Math.floor((clientY - gridTop) / 24)
+    const newY = rowIndex * 24
 
-      if (!isOverlap) {
-        console.log('isOverlap')
-        draggableElement.style.transform = `translate(${newX}px, ${newY}px)`
-        draggableElement.style.zIndex = `1`
+    if (!isOverlap) {
+      // Calculate the new position of the draggable element
+
+      const near = areElementsNear(draggableElement)
+      let newX = initialX
+
+      if (near) {
+        const rect = near.element.getBoundingClientRect()
+        if (near.isLeft) {
+          newX = rect.left - draggableElement.offsetWidth
+        } else {
+          newX = rect.right
+        }
       } else {
-        draggableElement.style.transform = `translate(${selectedInitialX[i]}px, ${selectedInitialY[i]}px)`
+        newX = clientX - offsetX > 0 ? clientX - offsetX : 0
 
-        draggableElement.style.zIndex = `1`
+        if (newX < nearX) {
+          newX = 0
+        }
       }
+
+      draggableElement.style.transform = `translate(${newX}px, ${newY}px)`
+
+      const near1 = areElementsNear(draggableElement)
+
+      if (near1) {
+        const rect = near1.element.getBoundingClientRect()
+        if (near.isLeft) {
+          newX = rect.left - draggableElement.offsetWidth
+        } else {
+          newX = rect.right
+        }
+        draggableElement.style.transform = `translate(${newX}px, ${newY}px)`
+      }
+    } else if (isOverlap.length > 1) {
+      draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`
+    } else {
+      const position = getHorizontalPosition(draggableElement, isOverlap[0])
+      const rect = isOverlap[0].getBoundingClientRect()
+
+      if (position.p === 'left') {
+        if (position.overlapX < isOverlap[0].offsetWidth / 2) {
+          draggableElement.style.transform = `translate(${
+            rect.left - draggableElement.offsetWidth
+          }px, ${newY}px)`
+        } else {
+          draggableElement.style.transform = `translate(${rect.left}px, ${newY}px)`
+        }
+
+        const overlaps1 = []
+        elements.forEach(elm => {
+          if (elm !== draggableElement) {
+            const isOverlap = checkOverlap(draggableElement, elm)
+            if (isOverlap) {
+              overlaps1.push(elm)
+            }
+          }
+        })
+
+        if (overlaps1.length || rect.left - draggableElement.offsetWidth < 0) {
+          draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`
+        }
+      } else {
+        if (position.overlapX < isOverlap[0].offsetWidth / 2) {
+          draggableElement.style.transform = `translate(${rect.right}px, ${newY}px)`
+        } else {
+          draggableElement.style.transform = `translate(${
+            rect.right - isOverlap[0].offsetWidth
+          }px, ${newY}px)`
+        }
+        const overlaps1 = []
+        elements.forEach(elm => {
+          if (elm !== draggableElement) {
+            const isOverlap = checkOverlap(draggableElement, elm)
+            if (isOverlap) {
+              overlaps1.push(elm)
+            }
+          }
+        })
+
+        if (
+          overlaps1.length ||
+          rect.right + draggableElement.offsetWidth > window.innerWidth
+        ) {
+          draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`
+        }
+      }
+
+      const near1 = areElementsNear(draggableElement)
+
+      if (near1) {
+        let newX
+        const rect = near1.element.getBoundingClientRect()
+        if (near1.isLeft) {
+          newX = rect.left - draggableElement.offsetWidth
+        } else {
+          newX = rect.right
+        }
+        draggableElement.style.transform = `translate(${newX}px, ${newY}px)`
+      }
+    }
+
+    // alinment
+    const alinment = areElementsNearVertically(draggableElement)
+
+    if (alinment) {
+      draggableElement.style.transform = `translate(${alinment?.newX}px, ${newY}px)`
+      const overlap = checkOverlap(draggableElement)
+      if (overlap) {
+        draggableElement.style.transform = `translate(${initialX}px, ${initialY}px)`
+      }
+    }
+
+    // find group position
+    const dragRect = draggableElement.getBoundingClientRect()
+
+    const dragElmInd = selectedElements.indexOf(draggableElement)
+
+    const positionX = selectedInitialX[dragElmInd] - dragRect.left
+    const positionY = selectedInitialY[dragElmInd] - dragRect.top
+
+    selectedElements.forEach((item, i) => {
+      if (item !== draggableElement) {
+        item.style.transform = `translate(${
+          selectedInitialX[i] - positionX
+        }px, ${selectedInitialY[i] - positionY}px)`
+      }
+    })
+
+    // find overlap on group
+    const screenHeight = window.screen.height
+    const screenWidth = window.screen.width
+    selectedElements.forEach((item, i) => {
+      const isOverlap = checkOverlap(item)
+
+      const itemRect = item.getBoundingClientRect()
+
+      if (
+        isOverlap ||
+        itemRect.left < 0 ||
+        itemRect.top < 0 ||
+        itemRect.bottom > screenHeight ||
+        itemRect.right > screenWidth
+      ) {
+        selectedElements.forEach((elm, j) => {
+          elm.style.transform = `translate(${selectedInitialX[j]}px, ${selectedInitialY[j]}px)`
+        })
+      }
+
+      return
     })
 
     // default value
@@ -282,21 +424,42 @@ function checkOverlap(draggable) {
   let elementWithMaxOverlap = null
 
   elements.forEach(elm => {
-    if (elm !== draggable) {
-      const rect2 = elm.getBoundingClientRect()
+    if (draggable.classList.contains('select')) {
+      if (elm !== draggable && !elm.classList.contains('select')) {
+        const rect2 = elm.getBoundingClientRect()
 
-      const horizontalOverlap =
-        rect1.x < rect2.x + rect2.width && rect1.x + rect1.width > rect2.x
-      const verticalOverlap =
-        rect1.y < rect2.y + rect2.height && rect1.y + rect1.height > rect2.y
+        const horizontalOverlap =
+          rect1.x < rect2.x + rect2.width && rect1.x + rect1.width > rect2.x
+        const verticalOverlap =
+          rect1.y < rect2.y + rect2.height && rect1.y + rect1.height > rect2.y
 
-      if (horizontalOverlap && verticalOverlap) {
-        const overlapArea =
-          Math.min(rect1.x + rect1.width, rect2.x + rect2.width) -
-          Math.max(rect1.x, rect2.x)
-        if (overlapArea > maxOverlap) {
-          maxOverlap = overlapArea
-          elementWithMaxOverlap = elm
+        if (horizontalOverlap && verticalOverlap) {
+          const overlapArea =
+            Math.min(rect1.x + rect1.width, rect2.x + rect2.width) -
+            Math.max(rect1.x, rect2.x)
+          if (overlapArea > maxOverlap) {
+            maxOverlap = overlapArea
+            elementWithMaxOverlap = elm
+          }
+        }
+      }
+    } else {
+      if (elm !== draggable) {
+        const rect2 = elm.getBoundingClientRect()
+
+        const horizontalOverlap =
+          rect1.x < rect2.x + rect2.width && rect1.x + rect1.width > rect2.x
+        const verticalOverlap =
+          rect1.y < rect2.y + rect2.height && rect1.y + rect1.height > rect2.y
+
+        if (horizontalOverlap && verticalOverlap) {
+          const overlapArea =
+            Math.min(rect1.x + rect1.width, rect2.x + rect2.width) -
+            Math.max(rect1.x, rect2.x)
+          if (overlapArea > maxOverlap) {
+            maxOverlap = overlapArea
+            elementWithMaxOverlap = elm
+          }
         }
       }
     }
@@ -335,25 +498,49 @@ function areElementsNear(draggable) {
   const nears = []
 
   elements.forEach(elm => {
-    if (elm !== draggable) {
-      const rect2 = elm.getBoundingClientRect()
-      const distanceX = Math.abs(
-        (rect1.left + rect1.right) / 2 - (rect2.left + rect2.right) / 2
-      )
-      const distanceY = Math.abs(
-        (rect1.top + rect1.bottom) / 2 - (rect2.top + rect2.bottom) / 2
-      )
-      const EDistanceX =
-        distanceX -
-        ((rect1.right - rect1.left) / 2 + (rect2.right - rect2.left) / 2)
+    if (draggable.classList.contains('select')) {
+      if (elm !== draggable && !elm.classList.contains('select')) {
+        const rect2 = elm.getBoundingClientRect()
+        const distanceX = Math.abs(
+          (rect1.left + rect1.right) / 2 - (rect2.left + rect2.right) / 2
+        )
+        const distanceY = Math.abs(
+          (rect1.top + rect1.bottom) / 2 - (rect2.top + rect2.bottom) / 2
+        )
+        const EDistanceX =
+          distanceX -
+          ((rect1.right - rect1.left) / 2 + (rect2.right - rect2.left) / 2)
 
-      const isNearX = EDistanceX < nearX && distanceY < 20
+        const isNearX = EDistanceX < nearX && distanceY < 20
 
-      const isLeft =
-        (rect2.left + rect2.right) / 2 > (rect1.left + rect1.right) / 2
+        const isLeft =
+          (rect2.left + rect2.right) / 2 > (rect1.left + rect1.right) / 2
 
-      if (isNearX) {
-        nears.push({ element: elm, isLeft: isLeft })
+        if (isNearX) {
+          nears.push({ element: elm, isLeft: isLeft })
+        }
+      }
+    } else {
+      if (elm !== draggable) {
+        const rect2 = elm.getBoundingClientRect()
+        const distanceX = Math.abs(
+          (rect1.left + rect1.right) / 2 - (rect2.left + rect2.right) / 2
+        )
+        const distanceY = Math.abs(
+          (rect1.top + rect1.bottom) / 2 - (rect2.top + rect2.bottom) / 2
+        )
+        const EDistanceX =
+          distanceX -
+          ((rect1.right - rect1.left) / 2 + (rect2.right - rect2.left) / 2)
+
+        const isNearX = EDistanceX < nearX && distanceY < 20
+
+        const isLeft =
+          (rect2.left + rect2.right) / 2 > (rect1.left + rect1.right) / 2
+
+        if (isNearX) {
+          nears.push({ element: elm, isLeft: isLeft })
+        }
       }
     }
   })
