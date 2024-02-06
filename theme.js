@@ -266,7 +266,45 @@ function drop(event) {
           elm.style.transform = `translate(${selectedInitialX[j]}px, ${selectedInitialY[j]}px)`
         })
       }
+      return
+    })
 
+    // alinment
+    selectedElements.forEach(item => {
+      draggableElement = item
+      const alm = areElementsNearVertically(draggableElement)
+
+      if (alm) {
+        const defX = alm?.newX - draggableElement.getBoundingClientRect().left
+
+        selectedElements.forEach((el, j) => {
+          el.style.transform = `translate(${
+            el.getBoundingClientRect().left + defX
+          }px, ${el.getBoundingClientRect().top}px)`
+        })
+      }
+    })
+
+    // alinment end
+
+    // find overlap on group
+
+    selectedElements.forEach((item, i) => {
+      const isOverlap = checkOverlap(item)
+
+      const itemRect = item.getBoundingClientRect()
+
+      if (
+        isOverlap ||
+        itemRect.left < 0 ||
+        itemRect.top < 0 ||
+        itemRect.bottom > screenHeight ||
+        itemRect.right > screenWidth
+      ) {
+        selectedElements.forEach((elm, j) => {
+          elm.style.transform = `translate(${selectedInitialX[j]}px, ${selectedInitialY[j]}px)`
+        })
+      }
       return
     })
 
@@ -573,6 +611,221 @@ function areElementsNear(draggable) {
 }
 
 function areElementsNearVertically(draggable) {
+  if (draggable.classList.contains('select')) {
+    const rect1 = draggable.getBoundingClientRect()
+
+    const elements = document.querySelectorAll('.draggable')
+    const nears = []
+
+    elements.forEach(elm => {
+      if (elm !== draggable && !elm.classList.contains('select')) {
+        const rect2 = elm.getBoundingClientRect()
+        const distanceX = Math.abs(
+          (rect1.left + rect1.right) / 2 - (rect2.left + rect2.right) / 2
+        )
+        const distanceY = Math.abs(
+          (rect1.top + rect1.bottom) / 2 - (rect2.top + rect2.bottom) / 2
+        )
+        const EDistanceX = Math.abs(rect1.left - rect2.left)
+
+        const isNearX = EDistanceX < nearX && distanceY < 25
+
+        const isLeft =
+          (rect2.left + rect2.right) / 2 > (rect1.left + rect1.right) / 2
+        // nears.push({ newX: rect2.left, isLeft: true })
+
+        if (rect2.right - rect2.left > draggable.offsetWidth) {
+          if (Math.abs(rect1.left - rect2.left) < nearX && distanceY < 25) {
+            if (
+              Math.abs(rect1.left - rect2.left) <
+              Math.abs(rect1.right - rect2.right)
+            ) {
+              nears.push({ newX: rect2.left, isLeft: true })
+            } else {
+              nears.push({
+                newX:
+                  rect2.left + rect2.right - rect2.left - draggable.offsetWidth,
+                isLeft: true,
+              })
+            }
+          } else if (
+            Math.abs(rect1.left - rect2.right) < nearX &&
+            distanceY < 25
+          ) {
+            nears.push({
+              newX: rect2.right,
+              isLeft: true,
+            })
+          } else if (
+            Math.abs(rect1.right - rect2.right) < nearX &&
+            distanceY < 25
+          ) {
+            nears.push({
+              newX: rect2.right - (rect1.right - rect1.left),
+              isLeft: false,
+            })
+          } else if (
+            Math.abs(rect1.right - rect2.left) < nearX &&
+            distanceY < 25
+          ) {
+            nears.push({
+              newX: rect2.left - (rect1.right - rect1.left),
+              isLeft: false,
+            })
+          }
+        } else {
+          if (EDistanceX < nearX && distanceY < 25) {
+            nears.push({ newX: rect2.left, isLeft: true })
+          } else if (
+            Math.abs(rect1.left - rect2.right) < nearX &&
+            distanceY < 25
+          ) {
+            nears.push({
+              newX: rect2.right,
+              isLeft: true,
+            })
+          } else if (
+            Math.abs(rect1.right - rect2.right) < nearX &&
+            distanceY < 25
+          ) {
+            nears.push({
+              newX: rect2.right - (rect1.right - rect1.left),
+              isLeft: false,
+            })
+          } else if (
+            Math.abs(rect1.right - rect2.left) < nearX &&
+            distanceY < 25
+          ) {
+            nears.push({
+              newX: rect2.left - (rect1.right - rect1.left),
+              isLeft: false,
+            })
+          }
+        }
+      }
+    })
+
+    if (nears.length) {
+      nears.sort((a, b) => {
+        const distanceA = Math.abs(rect1.left) - a.newX
+
+        const distanceB = Math.abs(rect1.left) - b.newX
+
+        return Math.abs(distanceA) - Math.abs(distanceB)
+      })
+
+      return nears[0]
+    } else {
+      return false
+    }
+  } else {
+    const rect1 = draggable.getBoundingClientRect()
+
+    const elements = document.querySelectorAll('.draggable')
+    const nears = []
+
+    elements.forEach(elm => {
+      if (elm !== draggable) {
+        const rect2 = elm.getBoundingClientRect()
+        const distanceX = Math.abs(
+          (rect1.left + rect1.right) / 2 - (rect2.left + rect2.right) / 2
+        )
+        const distanceY = Math.abs(
+          (rect1.top + rect1.bottom) / 2 - (rect2.top + rect2.bottom) / 2
+        )
+        const EDistanceX = Math.abs(rect1.left - rect2.left)
+
+        const isNearX = EDistanceX < nearX && distanceY < 25
+
+        const isLeft =
+          (rect2.left + rect2.right) / 2 > (rect1.left + rect1.right) / 2
+        // nears.push({ newX: rect2.left, isLeft: true })
+
+        if (rect2.right - rect2.left > draggable.offsetWidth) {
+          if (Math.abs(rect1.left - rect2.left) < nearX && distanceY < 25) {
+            if (
+              Math.abs(rect1.left - rect2.left) <
+              Math.abs(rect1.right - rect2.right)
+            ) {
+              nears.push({ newX: rect2.left, isLeft: true })
+            } else {
+              nears.push({
+                newX:
+                  rect2.left + rect2.right - rect2.left - draggable.offsetWidth,
+                isLeft: true,
+              })
+            }
+          } else if (
+            Math.abs(rect1.left - rect2.right) < nearX &&
+            distanceY < 25
+          ) {
+            nears.push({
+              newX: rect2.right,
+              isLeft: true,
+            })
+          } else if (
+            Math.abs(rect1.right - rect2.right) < nearX &&
+            distanceY < 25
+          ) {
+            nears.push({
+              newX: rect2.right - (rect1.right - rect1.left),
+              isLeft: false,
+            })
+          } else if (
+            Math.abs(rect1.right - rect2.left) < nearX &&
+            distanceY < 25
+          ) {
+            nears.push({
+              newX: rect2.left - (rect1.right - rect1.left),
+              isLeft: false,
+            })
+          }
+        } else {
+          if (EDistanceX < nearX && distanceY < 25) {
+            nears.push({ newX: rect2.left, isLeft: true })
+          } else if (
+            Math.abs(rect1.left - rect2.right) < nearX &&
+            distanceY < 25
+          ) {
+            nears.push({
+              newX: rect2.right,
+              isLeft: true,
+            })
+          } else if (
+            Math.abs(rect1.right - rect2.right) < nearX &&
+            distanceY < 25
+          ) {
+            nears.push({
+              newX: rect2.right - (rect1.right - rect1.left),
+              isLeft: false,
+            })
+          } else if (
+            Math.abs(rect1.right - rect2.left) < nearX &&
+            distanceY < 25
+          ) {
+            nears.push({
+              newX: rect2.left - (rect1.right - rect1.left),
+              isLeft: false,
+            })
+          }
+        }
+      }
+    })
+
+    if (nears.length) {
+      nears.sort((a, b) => {
+        const distanceA = Math.abs(rect1.left) - a.newX
+
+        const distanceB = Math.abs(rect1.left) - b.newX
+
+        return Math.abs(distanceA) - Math.abs(distanceB)
+      })
+
+      return nears[0]
+    } else {
+      return false
+    }
+  }
   const rect1 = draggable.getBoundingClientRect()
 
   const elements = document.querySelectorAll('.draggable')
