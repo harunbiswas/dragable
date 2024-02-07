@@ -991,4 +991,16 @@ document.addEventListener('DOMContentLoaded', function () {
   })
 
   // end select
+
+  // Add an event listener to the document to handle deselecting when clicking away
+  document.addEventListener('click', event => {
+    const isClickedOnTile = Array.from(items).some(item =>
+      item.contains(event.target)
+    )
+
+    if (!isClickedOnTile) {
+      // Clicked outside of tiles, deselect all tiles
+      items.forEach(item => item.classList.remove('select'))
+    }
+  })
 })
